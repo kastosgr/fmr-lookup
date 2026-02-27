@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>FY 2026 SAFMR Lookup</title>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #f4f6f8;
+    display: flex;
+    justify-content: center;
+    padding: 40px;
+}
+.container {
+    background: white;
+    padding: 25px;
+    border-radius: 8px;
+    width: 400px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+input, select, button {
+    width: 100%;
+    padding: 10px;
+    margin-top: 10px;
+}
+button {
+    background: #0077cc;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+.result {
+    margin-top: 20px;
+    background: #eef6ff;
+    padding: 15px;
+}
+.error {
+    color: red;
+    margin-top: 15px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+<h2>FY 2026 SAFMR Lookup</h2>
+
+<input type="text" id="zip" placeholder="Enter ZIP Code" maxlength="5">
+
+<select id="bedroom">
+<option value="0">Studio</option>
+<option value="1">1 Bedroom</option>
+<option value="2">2 Bedroom</option>
+<option value="3">3 Bedroom</option>
+<option value="4">4 Bedroom</option>
+</select>
+
+<button onclick="lookupFMR()">Find FMR</button>
+
+<div id="output"></div>
+</div>
+
+<script>
+async function lookupFMR() {
+    const zip = document.getElementById("zip").value.trim();
+    const bedroom = document.getElementById("bedroom").value;
+    const output = document.getElementById("output");
+
+    if (zip.length !== 5) {
+        output.innerHTML = "<div class='error'>Enter valid 5-digit ZIP.</div>";
+        return;
+    }
+
+    try {
+        const response = await fetch("fy2026_safmr.csv");
+        const text = await response.text();
+        const rows = text.split(/\r?\n/);
+
+        for (let i = 1; i < rows.length; i++) {
+
+            const cols = rows[i].match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
+            if (!cols) continue;
+
+            if (cols[0].replace(/"/g, "") === zip) {
+
+                let indexMap = {
+                    "0": 3,
+                    "1": 6,
+                    "2": 9,
+                    "3": 12,
+                    "4": 15
+                };
+
+                let rent = cols[indexMap[bedroom]];
+                rent = rent.replace(/[$",]/g, "");
+
+                output.innerHTML = `
+                    <div class="result">
+                        ZIP: <strong>${zip}</strong><br>
+                        ${bedroom == 0 ? "Studio" : bedroom + " Bedroom"} SAFMR:<br>
+                        <strong>$${Number(rent).toLocaleString()}</strong>
+                    </div>
+                `;
+                return;
+            }
+        }
+
+        output.innerHTML = "<div class='error'>ZIP not found.</div>";
+
+    } catch (err) {
+        output.innerHTML = "<div class='error'>Cannot load local CSV file.</div>";
+    }
+}
+</script>
+
+</body>
+</html>
